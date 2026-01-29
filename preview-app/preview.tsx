@@ -106,6 +106,7 @@ function renderMotionVideo() {
       compositionWidth={currentScript.width || 1080}
       compositionHeight={currentScript.height || 1080}
       style={{ width: '100%', height: '100%' }}
+      playbackRate={0.85}
       loop
       autoPlay
       controls

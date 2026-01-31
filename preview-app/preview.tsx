@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Player } from '@remotion/player';
+import { renderMediaOnWeb } from '@remotion/web-renderer';
 import { ProductSpin } from '../src/ProductSpin';
 import { MotionVideo } from '../src/MotionVideo';
 import type { ProductSpinProps } from '../src/types';
@@ -34,6 +35,7 @@ function getParams(): ProductSpinProps {
 let currentProps = getParams();
 let currentScript: MotionScript | null = null;
 let reactRoot: ReturnType<typeof createRoot> | null = null;
+let exportAbortController: AbortController | null = null;
 
 function getRoot() {
   const container = document.getElementById('player-container');
@@ -56,6 +58,10 @@ window.addEventListener('message', (event) => {
     currentProps = { ...currentProps, ...event.data.props };
     currentScript = null; // Switch back to legacy mode
     renderLegacyPlayer();
+  } else if (event.data?.type === 'exportMp4') {
+    handleExportMp4();
+  } else if (event.data?.type === 'cancelExport') {
+    exportAbortController?.abort();
   }
 });
 
@@ -63,6 +69,57 @@ window.addEventListener('message', (event) => {
 window.addEventListener('load', () => {
   window.parent.postMessage({ type: 'previewReady' }, '*');
 });
+
+// ============================================
+// MP4 Export
+// ============================================
+
+async function handleExportMp4() {
+  if (!currentScript) {
+    window.parent.postMessage({ type: 'exportError', error: 'No motion script loaded' }, '*');
+    return;
+  }
+
+  exportAbortController = new AbortController();
+
+  try {
+    window.parent.postMessage({ type: 'exportProgress', percent: 0, phase: 'Preparing...' }, '*');
+
+    const { getBlob } = await renderMediaOnWeb({
+      composition: {
+        component: MotionVideo,
+        durationInFrames: Math.max(currentScript.totalDurationFrames, 30),
+        fps: currentScript.fps || 30,
+        width: currentScript.width || 1080,
+        height: currentScript.height || 1080,
+        id: 'MotionVideo',
+      },
+      inputProps: { motionScript: currentScript },
+      container: 'mp4',
+      videoCodec: 'h264',
+      onProgress: ({ progress }) => {
+        window.parent.postMessage({
+          type: 'exportProgress',
+          percent: Math.round(progress * 100),
+          phase: 'Rendering frames...',
+        }, '*');
+      },
+      signal: exportAbortController.signal,
+    });
+
+    window.parent.postMessage({ type: 'exportProgress', percent: 95, phase: 'Encoding...' }, '*');
+    const blob = await getBlob();
+    window.parent.postMessage({ type: 'exportComplete', blob }, '*');
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      window.parent.postMessage({ type: 'exportCancelled' }, '*');
+    } else {
+      window.parent.postMessage({ type: 'exportError', error: err.message || 'Export failed' }, '*');
+    }
+  } finally {
+    exportAbortController = null;
+  }
+}
 
 // ============================================
 // Renderers

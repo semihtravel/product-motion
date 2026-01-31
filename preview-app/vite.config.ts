@@ -13,10 +13,11 @@ export default defineConfig({
       'remotion': path.resolve(__dirname, '../node_modules/remotion'),
       '@remotion/player': path.resolve(__dirname, '../node_modules/@remotion/player'),
       '@remotion/transitions': path.resolve(__dirname, '../node_modules/@remotion/transitions'),
+      '@remotion/web-renderer': path.resolve(__dirname, '../node_modules/@remotion/web-renderer'),
       'react': path.resolve(__dirname, '../node_modules/react'),
       'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
     },
-    dedupe: ['react', 'react-dom', 'remotion', '@remotion/player', '@remotion/transitions'],
+    dedupe: ['react', 'react-dom', 'remotion', '@remotion/player', '@remotion/transitions', '@remotion/web-renderer'],
   },
   server: {
     port: 3001,

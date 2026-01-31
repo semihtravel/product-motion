@@ -64,8 +64,8 @@ export const ScriptedScene: React.FC<{
           src={scene.imageUrl}
           maxRetries={3}
           style={{
-            maxWidth: '85%',
-            maxHeight: '85%',
+            width: '100%',
+            height: '100%',
             objectFit: 'contain',
           }}
         />
